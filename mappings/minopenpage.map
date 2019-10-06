@@ -1,0 +1,14 @@
+# Standard         DDR3
+# Number of bits     41
+# Channel             1
+# Rank                1
+# Bank                3
+# Row                30
+# Column              6
+
+Ro 40:17 = 40:17
+Co 5:2   = 16:13
+Ra 0     = 12
+Ba 2:0   = 11:9
+Ch 1     = 8
+Co 1:0   = 7:6

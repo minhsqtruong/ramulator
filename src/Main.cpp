@@ -50,6 +50,9 @@ void run_dramtrace(const Config& configs, Memory<T, Controller>& memory, const c
 
     Request req(addr, type, read_complete);
 
+    std::cout << "DEBUG Mapping Type from file: " << memory.use_mapping_file << std::endl;
+    std::cout << "DEBUG Using Mapping Scheme: " << int(memory.type) << std::endl;
+
     while (!end || memory.pending_requests()){
         if (!end && !stall){
             end = !trace.get_dramtrace_request(addr, type);
@@ -58,6 +61,9 @@ void run_dramtrace(const Config& configs, Memory<T, Controller>& memory, const c
         if (!end){
             req.addr = addr;
             req.type = type;
+
+            std::cout << "DEBUG Request sent: Address: " << addr << " Type: " << int(type) << std::endl;
+
             stall = !memory.send(req);
             if (!stall){
                 if (type == Request::Type::READ) reads++;
