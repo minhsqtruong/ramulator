@@ -19,6 +19,10 @@ public:
     // specify which core this request sent from, for virtual address translation
     int coreid;
 
+    //Minh: Minimalist Open Page
+    int priority;
+    bool prefetch;
+
     enum class Type
     {
         READ,
@@ -51,4 +55,3 @@ public:
 } /*namespace ramulator*/
 
 #endif /*__REQUEST_H*/
-

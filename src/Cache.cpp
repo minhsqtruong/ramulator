@@ -105,6 +105,13 @@ bool Cache::send(Request req) {
       int(level), req.addr, int(req.type), get_index(req.addr),
       get_tag(req.addr));
 
+  // Minh: Minimalist Open Page
+  if (req.type == Request::Type::READ) {
+    if (mshr_entries.size() < 2) req.priority = 7;
+    if (2 <= mshr_entries.size() && mshr_entries.size() < 4) req.priority = 6;
+    if (mshr_entries.size() >= 4) req.priority = 5;
+  }
+
   cache_total_access++;
   if (req.type == Request::Type::WRITE) {
     cache_write_access++;
@@ -154,6 +161,7 @@ bool Cache::send(Request req) {
       debug("hit mshr");
       cache_mshr_hit++;
       mshr->second->dirty = dirty || mshr->second->dirty;
+
       return true;
     }
 
