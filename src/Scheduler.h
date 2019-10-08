@@ -82,7 +82,7 @@ public:
         FRFCFS_PriorHit,
         HPFRFCFS, // Minh: Minimalist Open Page
         MAX
-    } type = Type::FRFCFS_Cap; //Change this line to change scheduling policy
+    } type = Type::HPFRFCFS; //Change this line to change scheduling policy
 
     long cap = 16; //Change this line to change cap
 

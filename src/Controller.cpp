@@ -54,6 +54,20 @@ void Controller<ALDRAM>::update_temp(ALDRAM::Temp current_temperature){
 template <>
 void Controller<TLDRAM>::tick(){
     clk++;
+
+    // Minh: Minimalist Open Page Increase priority every 100ns second
+    if (clk % 100 == 0) {
+      for (auto itr = readq.q.begin(); itr != readq.q.end(); itr++) {
+        // If it is normal read request
+        if(itr->prefetch == false && itr->priority < 7) itr->priority += 1;
+        // If it is a prefetch read request
+        if(itr->prefetch == true) {
+          if(itr->priority < 4) itr->priority += 1;
+          else readq.q.erase(itr);
+        }
+      }
+    }
+
     req_queue_length_sum += readq.size() + writeq.size();
     read_req_queue_length_sum += readq.size();
     write_req_queue_length_sum += writeq.size();

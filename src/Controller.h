@@ -11,6 +11,7 @@
 
 #include "Config.h"
 #include "DRAM.h"
+#include "Prefetcher.h"
 #include "Refresh.h"
 #include "Request.h"
 #include "Scheduler.h"
@@ -70,6 +71,7 @@ public:
     long clk = 0;
     DRAM<T>* channel;
 
+    Prefetcher<T> * prefetcher; //Minh: Minimalist Open Page enqueues a read prefetch request every time there is a normal read request
     Scheduler<T>* scheduler;  // determines the highest priority request whose commands will be issued
     RowPolicy<T>* rowpolicy;  // determines the row-policy (e.g., closed-row vs. open-row)
     RowTable<T>* rowtable;  // tracks metadata about rows (e.g., which are open and for how long)
@@ -106,6 +108,7 @@ public:
     /* Constructor */
     Controller(const Config& configs, DRAM<T>* channel) :
         channel(channel),
+        prefetcher(new Prefetcher<T>(this)),
         scheduler(new Scheduler<T>(this)),
         rowpolicy(new RowPolicy<T>(this)),
         rowtable(new RowTable<T>(this)),
@@ -281,6 +284,7 @@ public:
     }
 
     ~Controller(){
+        delete prefetcher;
         delete scheduler;
         delete rowpolicy;
         delete rowtable;
@@ -318,6 +322,11 @@ public:
 
         req.arrive = clk;
         queue.q.push_back(req);
+
+        // Minh: Prefetcher Engine should only work with read requests
+        if (req.type == Request::Type::READ)
+                prefetcher->issue(req, queue.q);
+
         // shortcut for read requests, if a write to same addr exists
         // necessary for coherence
         if (req.type == Request::Type::READ && find_if(writeq.q.begin(), writeq.q.end(),

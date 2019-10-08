@@ -21,6 +21,7 @@ public:
 
     //Minh: Minimalist Open Page
     int priority;
+    long distance;
     bool prefetch;
 
     enum class Type
