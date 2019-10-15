@@ -193,8 +193,8 @@ bool Cache::send(Request req) {
     mshr_entries.push_back(make_pair(req.addr, newline));
 
     // Minh: Minmalist Open Page
-    if (prefetcher->exist) {
-      prefetcher.activate(req);
+    if (prefetcher->exist()) {
+      prefetcher->activate(req);
     }
 
     // Send the request to next level;

@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "Request.h"
 #include "Statistics.h"
+#include "Prefetcher.h"
 #include <algorithm>
 #include <cstdio>
 #include <cassert>
@@ -16,9 +17,13 @@
 
 namespace ramulator
 {
+
+class Prefetcher;
 class CacheSystem;
 
 class Cache {
+friend class Prefetcher;
+friend class NextLine_Prefetcher;
 protected:
   ScalarStat cache_read_miss;
   ScalarStat cache_write_miss;

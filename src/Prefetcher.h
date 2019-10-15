@@ -32,26 +32,42 @@ using namespace std;
 namespace ramulator
 {
 
+class Cache;
+
+class NextLine_Prefetcher
+{
+public:
+  NextLine_Prefetcher(Cache* cache);
+  void activate(Request req);
+  bool exist();
+private:
+  long get_next_addr(long next_addr);
+  Cache* cache;
+};
+
+// class ADS_Prefetcher
+// {
+// public:
+//   ADS_Prefetcher(Cache*);
+//   void activate(Request);
+//   bool exist();
+// };
+
 class Prefetcher
 {
 public:
   Prefetcher(Cache* cache): cache(cache)
   {
     // Enable one line to choose prefetching engines
-    //engine = new BasePrefetcher(cache);
-    //engine = new BasePrefetcher(cache);
-    //engine = new BasePrefetcher(cache);
+    //engine = new ADS_Prefetcher(cache);
     engine = new NextLine_Prefetcher(cache);
   };
-  void activate(Req req) {engine->activate(req);};
+  void activate(Request req) {engine->activate(req);};
   bool exist() {return engine->exist();}
 private:
   Cache* cache;
-
   // Enable one line to choose prefetching engines
-  //BasePrefetcher* engine;
-  //BasePrefetcher* engine;
-  //BasePrefetcher* engine;
+  //ADS_Prefetcher* engine;
   NextLine_Prefetcher* engine;
 };
 

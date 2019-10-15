@@ -11,7 +11,6 @@
 
 #include "Config.h"
 #include "DRAM.h"
-#include "Prefetcher.h"
 #include "Refresh.h"
 #include "Request.h"
 #include "Scheduler.h"
@@ -285,7 +284,7 @@ public:
     }
 
     ~Controller(){
-        delete prefetcher;
+        //delete prefetcher; // Move to Cache
         delete scheduler;
         delete rowpolicy;
         delete rowtable;
