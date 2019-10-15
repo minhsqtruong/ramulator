@@ -82,6 +82,8 @@ protected:
   unsigned int index_offset;
   unsigned int tag_offset;
   unsigned int mshr_entry_num;
+  // Minh: Minimalist Open Page
+  Prefetcher* prefetcher;
   std::vector<std::pair<long, std::list<Line>::iterator>> mshr_entries;
   std::list<Request> retry_list;
 

@@ -18,7 +18,8 @@ Cache::Cache(int size, int assoc, int block_size,
     std::shared_ptr<CacheSystem> cachesys):
     level(level), cachesys(cachesys), higher_cache(0),
     lower_cache(nullptr), size(size), assoc(assoc),
-    block_size(block_size), mshr_entry_num(mshr_entry_num) {
+    block_size(block_size), mshr_entry_num(mshr_entry_num),
+    prefetcher(new Prefetcher(this)) {
 
   debug("level %d size %d assoc %d block_size %d\n",
       int(level), size, assoc, block_size);
@@ -190,6 +191,11 @@ bool Cache::send(Request req) {
 
     // Add to MSHR entries
     mshr_entries.push_back(make_pair(req.addr, newline));
+
+    // Minh: Minmalist Open Page
+    if (prefetcher->exist) {
+      prefetcher.activate(req);
+    }
 
     // Send the request to next level;
     if (!is_last_level) {
