@@ -260,6 +260,10 @@ public:
 
     vector<int> get_victim(typename T::Command cmd)
     {
+      // Minh:  Minimalist Open Page speculatively leave page open within tRC
+      if (ctrl->scheduler->type == Scheduler<T>::Type::HPFRFCFS)
+        return policy[int(Type::Timeout)](cmd);
+      else
         return policy[int(type)](cmd);
     }
 

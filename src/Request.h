@@ -20,7 +20,7 @@ public:
     int coreid;
 
     //Minh: Minimalist Open Page
-    int priority;
+    int priority = 0; // priority initialized as 0 for all request.
     long distance;
     bool prefetch;
 
