@@ -22,9 +22,9 @@ class Prefetcher;
 class CacheSystem;
 
 class Cache {
-friend class Prefetcher;
-friend class NextLine_Prefetcher;
-protected:
+
+public:
+// protected:
   ScalarStat cache_read_miss;
   ScalarStat cache_write_miss;
   ScalarStat cache_total_miss;
@@ -75,7 +75,7 @@ public:
 
   void callback(Request& req);
 
-protected:
+// protected: Minh: Prefetcher uses some of the protected functions
 
   bool is_first_level;
   bool is_last_level;

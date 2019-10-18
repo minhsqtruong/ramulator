@@ -62,7 +62,6 @@ void run_dramtrace(const Config& configs, Memory<T, Controller>& memory, const c
             req.addr = addr;
             req.type = type;
             req.prefetch = false; // Minh: Minimalist Open Page
-            req.priority = 5;
 
             std::cout << "DEBUG Request sent: Address: " << addr << " Type: " << int(type) << std::endl;
 
