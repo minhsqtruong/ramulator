@@ -35,13 +35,15 @@ namespace ramulator
 1) NextLine_Prefetcher: Exist on L1, L2 and L3 cache. Fetch the next cache line
 of the current request address.
 
-2) Adaptive Stream Detector:
+2) Adaptive Stream Detector: Exist on L3 cache. Base on a histogram of stream
+length, prefetch a request at a distance that is probabilistically sound.
 *******************************************************************************/
 
 /*==============================================================================
 PREFETCHER BASE CLASS DECLARATION
 ==============================================================================*/
 class Cache;
+
 class Prefetcher
 {
 public:
@@ -52,7 +54,7 @@ public:
   } type = Type::ASD;
 
   Prefetcher(Cache* cache);
-  void insert_prefetch(long next_addr);
+  void insert_prefetch(long next_addr, Request req);
   virtual void activate(Request req);
   virtual bool exist();
 private:
@@ -90,6 +92,7 @@ private:
   int* new_SLH;
   long prev_addr;
   int prev_bin;
+  int total_readrq = 0;
 
   void build_new_SLH(long addr); // construct new_SLH
   long stream_filter(long addr); // determine fetch depth

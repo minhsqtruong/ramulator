@@ -33,7 +33,7 @@ BASE PREFETCHER
     }
   };
 
-  void Prefetcher::insert_prefetch(long next_addr)
+  void Prefetcher::insert_prefetch(long next_addr, Request req)
   {
     auto mshr = cache->hit_mshr(next_addr);
 
@@ -59,6 +59,30 @@ BASE PREFETCHER
     // add new miss entry to mshr
     newline->dirty = false; // only READ request
     cache->mshr_entries.push_back(make_pair(next_addr, newline));
+
+    // create new prefetch request;
+    map<int, int> latencies;
+    auto read_complete = [&latencies](Request& r){latencies[r.depart - r.arrive]++;};
+    Request prefetch_req(next_addr, req.type, read_complete);
+    prefetch_req.prefetch = true;
+
+    // Set priority of request
+    long distance = prefetch_req.addr - req.addr;
+    if (distance >= 0 && distance < 4) prefetch_req.priority = 4;
+    if (distance >= 4 && distance < 8) prefetch_req.priority = 3;
+    if (distance >= 8 && distance <12) prefetch_req.priority = 2;
+    if (distance >=12 && distance <16) prefetch_req.priority = 1;
+    else prefetch_req.priority = 0;
+
+    // Send the request to next level;
+    if (!cache->is_last_level) {
+      if(!cache->lower_cache->send(prefetch_req)) {
+        cache->retry_list.push_back(prefetch_req);
+      }
+    } else {
+      cache->cachesys->wait_list.push_back(
+          make_pair(cache->cachesys->clk + cache->latency[int(cache->level)], prefetch_req));
+    }
   };
 
   void Prefetcher::activate(Request req) {engine->activate(req);};
@@ -74,7 +98,7 @@ NEXTLINE PREFETCHER
   {
     assert(req.type == Request::Type::READ);
     auto next_addr = get_next_addr(req.addr);
-    insert_prefetch(next_addr);
+    insert_prefetch(next_addr, req);
   };
 
   bool NextLine_Prefetcher::exist()
@@ -116,8 +140,8 @@ ASD PREFETCHER
     build_new_SLH(req.addr);
 
     assert(req.type == Request::Type::READ);
-    auto next_addr = stream_filter(req.addr);
-    insert_prefetch(next_addr);
+    auto next_addr = req.addr + stream_filter(req.addr);
+    insert_prefetch(next_addr, req);
   };
 
   bool ASD_Prefetcher::exist()
@@ -131,19 +155,29 @@ ASD PREFETCHER
   void ASD_Prefetcher::build_new_SLH(long addr) {
     if (addr < prev_addr) return;
 
-    bin = addr - prev_addr;
+    int bin = addr - prev_addr;
     if (bin == prev_bin) {
-      new_SLH[bin]++
+      new_SLH[bin]++;
     }
     else {
       prev_bin = bin;
     }
+    total_readrq++;
     prev_addr = addr;
   };
 
   long ASD_Prefetcher::stream_filter(long addr) {
+    float Pii; // P(i,i)
+    float P_right_tail; // P(i+1, fs)
     for (int i = 0; i < fs; i++) {
-      
+      Pii = ((float) SLH[i]) / ((float) total_readrq);
+      P_right_tail = 0.0;
+      for (int j = i+1; j < fs; j++) {
+        P_right_tail += ((float) SLH[j]) / ((float) total_readrq);
+      }
+      if (Pii < P_right_tail)
+        return (long) i;
     }
-  }
+    return (long) 0;
+  };
 } /*namespace ramulator*/

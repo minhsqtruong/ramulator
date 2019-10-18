@@ -192,11 +192,6 @@ bool Cache::send(Request req) {
     // Add to MSHR entries
     mshr_entries.push_back(make_pair(req.addr, newline));
 
-    // Minh: Minmalist Open Page
-    if (prefetcher->exist()) {
-      prefetcher->activate(req);
-    }
-
     // Send the request to next level;
     if (!is_last_level) {
       if(!lower_cache->send(req)) {
@@ -206,6 +201,12 @@ bool Cache::send(Request req) {
       cachesys->wait_list.push_back(
           make_pair(cachesys->clk + latency[int(level)], req));
     }
+
+    // Minh: Minmalist Open Page
+    if (prefetcher->exist()) {
+      prefetcher->activate(req);
+    }
+    
     return true;
   }
 }
