@@ -19,7 +19,8 @@ Cache::Cache(int size, int assoc, int block_size,
     level(level), cachesys(cachesys), higher_cache(0),
     lower_cache(nullptr), size(size), assoc(assoc),
     block_size(block_size), mshr_entry_num(mshr_entry_num),
-    prefetcher(new Prefetcher(this)) {
+    prefetcher(new Prefetcher(this, Prefetcher::Type::ASD)) 
+{
 
   debug("level %d size %d assoc %d block_size %d\n",
       int(level), size, assoc, block_size);
@@ -206,7 +207,7 @@ bool Cache::send(Request req) {
     if (prefetcher->exist()) {
       prefetcher->activate(req);
     }
-    
+
     return true;
   }
 }

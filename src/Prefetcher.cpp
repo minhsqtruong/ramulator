@@ -20,14 +20,19 @@ namespace ramulator
 /*==============================================================================
 BASE PREFETCHER
 ==============================================================================*/
-  Prefetcher::Prefetcher(Cache* cache): cache(cache)
+  Prefetcher::Prefetcher(Cache* cache, Type _type): cache(cache)
   {
+    type = _type;
     switch(type) {
       case Type::Nextline:
         engine = new NextLine_Prefetcher(cache);
         break;
       case Type::ASD:
         engine = new ASD_Prefetcher(cache);
+        break;
+      case Type::GlobalHistory:
+        engine = new GlobalHistory_Prefetcher(cache);
+        break;
       default:
         engine = new ASD_Prefetcher(cache);
     }
@@ -35,6 +40,11 @@ BASE PREFETCHER
 
   void Prefetcher::insert_prefetch(long next_addr, Request req)
   {
+    assert(req.type == Request::Type::READ);
+    // If prefetch engin predicts depth of 0
+    if (next_addr == req.addr)
+      return;
+
     auto mshr = cache->hit_mshr(next_addr);
 
     // if the prefetch miss is already registered
@@ -92,11 +102,10 @@ BASE PREFETCHER
 NEXTLINE PREFETCHER
 ==============================================================================*/
 
-  NextLine_Prefetcher::NextLine_Prefetcher(Cache* cache): Prefetcher(cache) {};
+  NextLine_Prefetcher::NextLine_Prefetcher(Cache* cache): Prefetcher(cache, type) {};
 
   void NextLine_Prefetcher::activate(Request req)
   {
-    assert(req.type == Request::Type::READ);
     auto next_addr = get_next_addr(req.addr);
     insert_prefetch(next_addr, req);
   };
@@ -120,7 +129,7 @@ NEXTLINE PREFETCHER
 /*==============================================================================
 ASD PREFETCHER
 ==============================================================================*/
-  ASD_Prefetcher::ASD_Prefetcher(Cache* cache): Prefetcher(cache)
+  ASD_Prefetcher::ASD_Prefetcher(Cache* cache): Prefetcher(cache, type)
   {
     SLH = new int[fs];
     float start_prob = 1.0 / (float) fs;
@@ -180,4 +189,23 @@ ASD PREFETCHER
     }
     return (long) 0;
   };
+
+/*==============================================================================
+GLOBAL HISTORY PREFETCHER
+==============================================================================*/
+GlobalHistory::GlobalHistory(Cache* cache): Prefetcher(cache, type){};
+
+void GlobalHistory::activate(Request req)
+{
+
+};
+
+bool GlobalHistory::exist()
+{
+  if (cache->level == Cache::Level::L2
+   || cache->level == Cache::Level::L3) {
+    return true;
+  }
+  return false;
+};
 } /*namespace ramulator*/

@@ -32,11 +32,17 @@ using namespace std;
 namespace ramulator
 {
 /***************************** PREFETCHER.H ************************************
-1) NextLine_Prefetcher: Exist on L1, L2 and L3 cache. Fetch the next cache line
+1) NextLine_Prefetcher: Exists on L1, L2 and L3 cache. Fetch the next cache line
 of the current request address.
+Reference: 18-740 Lecture 18.
 
-2) Adaptive Stream Detector: Exist on L3 cache. Base on a histogram of stream
+2) Adaptive Stream Detector: Exists on L3 cache. Base on a histogram of stream
 length, prefetch a request at a distance that is probabilistically sound.
+Reference: https://www.cs.utexas.edu/~lin/papers/micro06.pdf
+
+3) Global History Buffer: Exists on L2 and L3. Predict the next line pattern
+based on a FIFO buffer that keep track of the access pattern in the past.
+Reference: http://www.eecg.toronto.edu/~steffan/carg/readings/ghb.pdf
 *******************************************************************************/
 
 /*==============================================================================
@@ -50,10 +56,11 @@ public:
   enum class Type {
     ASD,
     Nextline,
+    GlobalHistory,
     MAX
   } type = Type::ASD;
 
-  Prefetcher(Cache* cache);
+  Prefetcher(Cache* cache, Type _type);
   void insert_prefetch(long next_addr, Request req);
   virtual void activate(Request req);
   virtual bool exist();
@@ -96,6 +103,16 @@ private:
 
   void build_new_SLH(long addr); // construct new_SLH
   long stream_filter(long addr); // determine fetch depth
+};
+
+class GlobalHistory_Prefetcher: public Prefetcher
+{
+public:
+  GlobalHistory_Prefetcher(Cache* cache);
+  void activate(Request req);
+  bool exist();
+private:
+  Cache* cache;
 };
 
 } /*namespace ramulator*/
