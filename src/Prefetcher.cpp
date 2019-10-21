@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <string.h>
 #include <stdio.h>
+#include <vector>
 
 using namespace std;
 
@@ -30,8 +31,8 @@ BASE PREFETCHER
       case Type::ASD:
         engine = new ASD_Prefetcher(cache);
         break;
-      case Type::GlobalHistory:
-        engine = new GlobalHistory_Prefetcher(cache);
+      case Type::Markov:
+        engine = new Markov_Prefetcher(cache);
         break;
       default:
         engine = new ASD_Prefetcher(cache);
@@ -193,14 +194,26 @@ ASD PREFETCHER
 /*==============================================================================
 GLOBAL HISTORY PREFETCHER
 ==============================================================================*/
-GlobalHistory::GlobalHistory(Cache* cache): Prefetcher(cache, type){};
+Markov_Prefetcher::Markov_Prefetcher(Cache* cache): Prefetcher(cache, type){};
 
-void GlobalHistory::activate(Request req)
+void Markov_Prefetcher::activate(Request req)
 {
+  struct BUFFER_ENTRIES* header;
+  vector <long> prefetch_addrs;
+  if (index_hit(header, req.addr)) {
+    prefetch_addrs = traverse_buffer(header, prefetch_addrs);
+    add_to_buffer(header, req.addr);
+  }
+  else {
+    add_to_index(req.addr);
+  }
 
+  // issue prefetch requests
+  for (auto i = prefetch_addrs.begin(); i != prefetch_addrs.end(); i+=1)
+    insert_prefetch(*i, req);
 };
 
-bool GlobalHistory::exist()
+bool Markov_Prefetcher::exist()
 {
   if (cache->level == Cache::Level::L2
    || cache->level == Cache::Level::L3) {
@@ -208,4 +221,58 @@ bool GlobalHistory::exist()
   }
   return false;
 };
+
+bool Markov_Prefetcher::index_hit(struct BUFFER_ENTRIES* header ,long addr) {
+  for (auto i = index_table.begin(); i != index_table.end(); i+=1) {
+    if ((*i).addr == addr) {
+      header = (*i).header;
+      return true;
+    }
+  }
+  return false;
+};
+
+vector <long> Markov_Prefetcher::traverse_buffer(struct BUFFER_ENTRIES* header, vector <long> prefetch_addrs)
+{
+  prefetch_addrs.push_back(header->prefetch_addr);
+  if (header->next_instance == NULL)
+    return prefetch_addrs;
+  return traverse_buffer(header->next_instance, prefetch_addrs);
+};
+
+void Markov_Prefetcher::add_to_buffer(struct BUFFER_ENTRIES* header, long addr)
+{
+  struct BUFFER_ENTRIES new_entry;
+  new_entry.next_instance = header;
+  new_entry.prefetch_addr = global_history_buffer.back().addr;
+  new_entry.addr = addr;
+  if (global_history_buffer.size() > max_buffer_size)
+    global_history_buffer.erase(global_history_buffer.begin());
+  global_history_buffer.push_back(new_entry);
+
+  // update the index table to the new request;
+  for (auto i = index_table.begin(); i != index_table.end(); i+=1) {
+    if ((*i).addr == addr)
+      (*i).header = &new_entry;
+  }
+ };
+
+ void Markov_Prefetcher::add_to_index(long addr)
+ {
+   struct INDEX_ENTRIES  new_idx_entry;
+   struct BUFFER_ENTRIES new_buf_entry;
+   new_idx_entry.addr = addr;
+   new_idx_entry.header = &new_buf_entry;
+   new_buf_entry.addr = addr;
+
+   // add new entry to buffer header
+   if (global_history_buffer.size() > max_buffer_size)
+     global_history_buffer.erase(global_history_buffer.begin());
+   global_history_buffer.push_back(new_buf_entry);
+
+   // add new entry to index table
+   if (index_table.size() > max_index_size)
+    index_table.erase(index_table.begin());
+  index_table.push_back(new_idx_entry);
+ };
 } /*namespace ramulator*/

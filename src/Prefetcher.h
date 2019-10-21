@@ -1,18 +1,3 @@
-/***************************** PREFETCHER.H ***********************************
-
-
-This file contains the different prefetcher engines that memory controller can
-use in adjunction with a scheduler to enqueue prefetching request.
-
-Current Prefetcher Engines:
-
-1) ASD - Adaptive Stream Detection
-
-2) MAJ - Majority Depth - A simple prefetching mechanism that issue a read request
-at the depth of the most occuring normal read stride.
-
-*****************************************************************************/
-
 #ifndef __PREFETCHER_H
 #define __PREFETCHER_H
 
@@ -26,13 +11,14 @@ at the depth of the most occuring normal read stride.
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
 namespace ramulator
 {
 /***************************** PREFETCHER.H ************************************
-1) NextLine_Prefetcher: Exists on L1, L2 and L3 cache. Fetch the next cache line
+1) NextLine Prefetcher: Exists on L1, L2 and L3 cache. Fetch the next cache line
 of the current request address.
 Reference: 18-740 Lecture 18.
 
@@ -40,8 +26,7 @@ Reference: 18-740 Lecture 18.
 length, prefetch a request at a distance that is probabilistically sound.
 Reference: https://www.cs.utexas.edu/~lin/papers/micro06.pdf
 
-3) Global History Buffer: Exists on L2 and L3. Predict the next line pattern
-based on a FIFO buffer that keep track of the access pattern in the past.
+3) Markov Prefetcher: Based on the Global Buffer FIFO and an index key table.
 Reference: http://www.eecg.toronto.edu/~steffan/carg/readings/ghb.pdf
 *******************************************************************************/
 
@@ -56,7 +41,7 @@ public:
   enum class Type {
     ASD,
     Nextline,
-    GlobalHistory,
+    Markov,
     MAX
   } type = Type::ASD;
 
@@ -105,14 +90,33 @@ private:
   long stream_filter(long addr); // determine fetch depth
 };
 
-class GlobalHistory_Prefetcher: public Prefetcher
+class Markov_Prefetcher: public Prefetcher
 {
 public:
-  GlobalHistory_Prefetcher(Cache* cache);
+  Markov_Prefetcher(Cache* cache);
   void activate(Request req);
   bool exist();
 private:
+  struct BUFFER_ENTRIES {
+    long addr;
+    struct BUFFER_ENTRIES *next_instance = NULL;
+    long prefetch_addr;
+  };
+  struct INDEX_ENTRIES {
+    long addr;
+    struct BUFFER_ENTRIES *header;
+  };
+
   Cache* cache;
+  unsigned int max_index_size = 8;
+  unsigned int max_buffer_size = 64;
+  vector <struct INDEX_ENTRIES> index_table;
+  vector <struct BUFFER_ENTRIES> global_history_buffer;
+
+  bool index_hit(struct BUFFER_ENTRIES* header, long addr);
+  vector <long> traverse_buffer(struct BUFFER_ENTRIES* header, vector<long> prefetch_addrs);
+  void add_to_buffer(struct BUFFER_ENTRIES* header, long req);
+  void add_to_index(long addr);
 };
 
 } /*namespace ramulator*/
